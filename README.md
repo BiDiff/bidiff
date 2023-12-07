@@ -4,7 +4,7 @@
 
 
 <div align="center">
-    <a href='https://dinglihe.github.io/' target='_blank'>Lihe Ding<sup>1</sup></a>&emsp;
+    <a href='https://dinglihe.github.io/' target='_blank'>Lihe Ding<sup>1,4</sup></a>&emsp;
     <a href='https://scholar.google.com/citations?user=Pee4FRsAAAAJ&hl=en' target='_blank'>Shaocong Dong<sup>2</sup></a>&emsp;
     <a>Zhanpeng Huang<sup>3</sup></a>&emsp;
     <a>Zibin Wang<sup>3,†</sup></a>&emsp;

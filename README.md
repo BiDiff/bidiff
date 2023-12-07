@@ -34,7 +34,7 @@
 
 [![arXiv](https://img.shields.io/badge/arxiv-2312.xxxxx-b31b1b?style=plastic&color=b31b1b&link=https%3A%2F%2Farxiv.org%2Fabs%2F2312.xxxxx)](https://arxiv.org/abs/2312.xxxxx)
 [![website](https://img.shields.io/badge/Project-Website-brightgreen)](https://bidiff.github.io/)
-<a href="https://youtu.be/XSMY9dknKdk">
+<a href="https://www.youtube.com/watch?v=XSMY9dknKdk">
 <img src="https://img.icons8.com/color/48/000000/youtube-play.png" width="33" height="25">
 </a>
 

@@ -46,14 +46,16 @@ Click the GIF to access the high-resolution video.
 
 <table class="center">
   <td><p align="center" width="100%">
-              <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
+              <!-- <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
                 <source src="assets/case0.mp4" type="video/mp4">
-              </video>
+              </video> -->
+              <image src="assets/case0.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
             </p></td>
   <td><p align="center" width="100%">
-              <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
+              <!-- <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
                 <source src="assets/case1.mp4" type="video/mp4">
-              </video>
+              </video> -->
+            <image src="assets/case1.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
             </p></td>
   <tr>
   <td style="text-align:center;" width="320">"An eagle head."</td>
@@ -63,14 +65,16 @@ Click the GIF to access the high-resolution video.
 
 <table class="center">
   <td><p align="center" width="100%">
-              <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
+              <!-- <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
                 <source src="assets/case2.mp4" type="video/mp4">
-              </video>
+              </video> -->
+              <image src="assets/case2.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
             </p></td>
   <td><p align="center" width="100%">
-              <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
+              <!-- <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
                 <source src="assets/case3.mp4" type="video/mp4">
-              </video>
+              </video> -->
+              <image src="assets/case3.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
             </p></td>
   <tr>
   <td style="text-align:center;" width="320">"A Nike sport shoes."</td>
@@ -83,13 +87,13 @@ Click the GIF to access the high-resolution video.
 
 <table class="center">
   <td><div class="has-text-centered" style="width: 100%;">
-              <image src="assets/bear.png" poster="" style="width: 80%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+              <image src="assets/bear.png" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
     </td>
   <td><div class="has-text-centered" style="width: 100%;">
-              <image src="assets/fruit.png" poster="" style="width: 80%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+              <image src="assets/fruit.png" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
     </td>
     <td><div class="has-text-centered" style="width: 100%;">
-                <image src="assets/cow.png" poster="" style="width: 80%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+                <image src="assets/cow.png" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
     </td>
   <tr>
   <td style="text-align:center;" width="220">"Bear."</td>
@@ -126,9 +130,10 @@ The BiDiff framework operates as follows: (a) At each step of diffusion, we rend
 ### 4. Quantities of Results.
 
 <p align="center" width="100%">
-      <video muted autoplay loop>
+      <!-- <video muted autoplay loop>
         <source src="assets/more.mp4" type="video/mp4">
-      </video>
+      </video> -->
+      <image src="assets/more.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
 </p>    
 
 

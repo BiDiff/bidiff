@@ -11,8 +11,8 @@
     </br>
     <a href='https://scholar.google.com/citations?user=KuYlJCIAAAAJ&hl=en' target='_blank'>Yiyuan Zhang<sup>1</sup></a>&emsp;
     <a href='https://kxgong.github.io/' target='_blank'>Kaixiong Gong<sup>1</sup></a>&emsp;
-    <a> Dan Xu<sup>2</sup></a>&emsp;
-    <a> Tianfan Xue<sup>1</sup></a>
+    <a href='https://www.danxurgb.net/'> Dan Xu<sup>2</sup></a>&emsp;
+    <a href='https://tianfan.info/'> Tianfan Xue<sup>1</sup></a>
 </div>
 <div>
 
@@ -34,7 +34,7 @@
 
 [![arXiv](https://img.shields.io/badge/arxiv-2312.xxxxx-b31b1b?style=plastic&color=b31b1b&link=https%3A%2F%2Farxiv.org%2Fabs%2F2312.xxxxx)](https://arxiv.org/abs/2312.xxxxx)
 [![website](https://img.shields.io/badge/Project-Website-brightgreen)](https://bidiff.github.io/)
-<a href="https://www.youtube.com/watch?v=XSMY9dknKdk">
+<a href="https://www.youtube.com/watch?v=3xzGrJLIEi0">
 <img src="https://img.icons8.com/color/48/000000/youtube-play.png" width="33" height="25">
 </a>
 

@@ -32,7 +32,7 @@
 
 ### Text-to-3D Generation with Bidirectional Diffusion using both 2D and 3D priors
 
-[![arXiv](https://img.shields.io/badge/arxiv-2312.xxxxx-b31b1b?style=plastic&color=b31b1b&link=https%3A%2F%2Farxiv.org%2Fabs%2F2312.xxxxx)](https://arxiv.org/abs/2312.xxxxx)
+[![arXiv](https://img.shields.io/badge/arxiv-2312.04963-b31b1b?style=plastic&color=b31b1b&link=https%3A%2F%2Farxiv.org%2Fabs%2F2312.04963)](https://arxiv.org/abs/2312.04963)
 [![website](https://img.shields.io/badge/Project-Website-brightgreen)](https://bidiff.github.io/)
 <a href="https://www.youtube.com/watch?v=3AHDbJlGKwY">
 <img src="https://img.icons8.com/color/48/000000/youtube-play.png" width="33" height="25">
@@ -144,7 +144,7 @@ If the paper and the code are helpful for your research, please kindly cite:
       title={Text-to-3D Generation with Bidirectional Diffusion using both 2D and 3D priors}, 
       author={Ding, Lihe and Dong, Shaocong, and Huang, Zhanpeng, and Wang, Zibin and Zhang, Yiyuan and Gong, Kaixiong and Xu, Dan and Xue, Tianfan},
       year={2023},
-      eprint={2312.xxxxx},
+      eprint={2312.04963},
       archivePrefix={arXiv},
       primaryClass={cs.CV}
 }

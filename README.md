@@ -140,9 +140,9 @@ The BiDiff framework operates as follows: (a) At each step of diffusion, we rend
 ## Citation
 If the paper and the code are helpful for your research, please kindly cite:
 ```
-@article{ding2023text,
+@misc{ding2023textto3d,
       title={Text-to-3D Generation with Bidirectional Diffusion using both 2D and 3D priors}, 
-      author={Ding, Lihe and Dong, Shaocong, and Huang, Zhanpeng, and Wang, Zibin and Zhang, Yiyuan and Gong, Kaixiong and Xu, Dan and Xue, Tianfan},
+      author={Lihe Ding and Shaocong Dong and Zhanpeng Huang and Zibin Wang and Yiyuan Zhang and Kaixiong Gong and Dan Xu and Tianfan Xue},
       year={2023},
       eprint={2312.04963},
       archivePrefix={arXiv},

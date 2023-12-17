@@ -40,6 +40,8 @@
 
 *We are trying our best to clean up the code, please kindly star and watch if you're interested.*
 
+*A well-documented implementation will be released around Jan 15, 2024.* 
+
 
 ### 1. High-quality 3D Object Generation
 Click the GIF to access the high-resolution video.

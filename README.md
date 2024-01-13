@@ -38,9 +38,15 @@
 <img src="https://img.icons8.com/color/48/000000/youtube-play.png" width="23" height="25">
 </a>
 
-*We are trying our best to clean up the code, please kindly star and watch if you're interested.*
+*The release of our code and weights is rescheduled to the end of January as we are rushing for some deadlines.*
 
-*A well-documented implementation will be released around Jan 15, 2024.* 
+*Thanks for your understanding.*
+
+- [ ] Release the training and inference code based on diffusers.
+- [ ] Release the weights trained on Objaverse-LVIS.
+- [ ] Release the processed training data.
+- [ ] Re-train our model on Objaverse-XL.
+- [ ] Hugging Face live demo.
 
 
 ### 1. High-quality 3D Object Generation

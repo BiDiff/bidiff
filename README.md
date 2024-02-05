@@ -38,15 +38,20 @@
 <img src="https://img.icons8.com/color/48/000000/youtube-play.png" width="23" height="25">
 </a>
 
-*The release of our code and weights is rescheduled to the end of January as we are rushing for some deadlines.*
-
-*Thanks for your understanding.*
-
 - [ ] Release the training and inference code based on diffusers.
 - [ ] Release the weights trained on Objaverse-LVIS.
 - [ ] Release the processed training data.
 - [ ] Re-train our model on Objaverse-XL.
 - [ ] Hugging Face live demo.
+- [x] Support fully decouple texture and geometry control (below are results from BiDiff sampling).
+      
+<p align="left" width="100%">
+<img src="assets/fully decouple.jpg"  width="60%" height="80%">
+</p>
+
+### NEWS
+- BiDiff supports fully decoupled texture and geometry control now.
+- We are at the final stage of code-releasing and the code will be uploaded next week!
 
 
 ### 1. High-quality 3D Object Generation

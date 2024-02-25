@@ -1,9 +1,9 @@
 
 export MODEL_DIR="DeepFloyd/IF-I-XL-v1.0"
 export OUTPUT_DIR="./log/debug0"
-export CONFIG="./configs/bidiff_if_objaverse_debug.yaml"
+export CONFIG="./configs/bidiff_if_objaverse.yaml"
 
-CUDA_VISIBLE_DEVICES=1 accelerate launch --main_process_port=29500 --multi_gpu train_bidiff.py \
+CUDA_VISIBLE_DEVICES=0 accelerate launch --main_process_port=29500 --multi_gpu train_bidiff.py \
  --pretrained_model_name_or_path=$MODEL_DIR \
  --output_dir=$OUTPUT_DIR \
  --cfg=$CONFIG \
@@ -14,13 +14,13 @@ CUDA_VISIBLE_DEVICES=1 accelerate launch --main_process_port=29500 --multi_gpu t
  --learning_rate=2e-6 \
  --mv_learning_rate=5e-5 \
  --snr_gamma=5 \
- --validation_steps 4 \
+ --validation_steps 400 \
  --text_encoder_use_attention_mask \
  --tokenizer_max_length 77 \
  --set_grads_to_none \
  --skip_save_text_encoder \
  --max_train_steps 400000 \
- --checkpointing_steps 5 \
+ --checkpointing_steps 2000 \
  --checkpoints_total_limit 2 \
  --use_8bit_adam \
  --gradient_checkpointing \

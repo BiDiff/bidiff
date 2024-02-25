@@ -38,12 +38,14 @@
 <img src="https://img.icons8.com/color/48/000000/youtube-play.png" width="23" height="25">
 </a>
 
-- [ ] Release the training and inference code based on diffusers.
+- [x] Implement BiDiff on [diffusers](https://github.com/huggingface/diffusers) (training && inference).
+- [x] Replace NeuS with FlexiCubes.
 - [ ] Release the weights trained on Objaverse-LVIS.
 - [ ] Release the processed training data.
+- [ ] Release the data processing scripts.
 - [ ] Re-train our model on Objaverse-XL.
 - [ ] Hugging Face live demo.
-- [x] Support fully decouple texture and geometry control (below are results from BiDiff sampling).
+- [x] Support fully decoupled texture and geometry control (below are results from BiDiff sampling).
       
 <p align="left" width="100%">
 <img src="assets/fully decouple.jpg"  width="60%" height="80%">
@@ -51,8 +53,8 @@
 
 ### NEWS
 - BiDiff supports fully decoupled texture and geometry control now.
-- We are at the final stage of code-releasing and the code will be uploaded next week!
-
+- We implement an initial version of BiDiff on diffusers and improve the 3D representation from **NeuS** to [**FlexiCubes**](https://research.nvidia.com/labs/toronto-ai/flexicubes/).
+- Data, weights, and a more detailed document are coming.
 
 ### 1. High-quality 3D Object Generation
 Click the GIF to access the high-resolution video.
@@ -147,7 +149,34 @@ The BiDiff framework operates as follows: (a) At each step of diffusion, we rend
         <source src="assets/more.mp4" type="video/mp4">
       </video> -->
       <image src="assets/more.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
-</p>    
+</p> 
+
+### Getting Started
+The code is tested on torch 2.0.1 and cuda 11.7. Data and weights will be uploaded to [here](https://drive.google.com/drive/folders/1qoHrHVcadVt9Dp7tbubkVtFwsND_L0WR?usp=sharing).
+```sh
+# cuda 11.7 torch 2.0.1 diffusers origin 0.18.0.dev0
+pip install -e ".[torch]"
+pip install git+https://github.com/NVlabs/nvdiffrast/
+pip install kaolin==0.15.0 -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.0.1_cu117.html
+sudo apt-get install libsparsehash-dev
+pip install --upgrade git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0
+pip install imageio trimesh tqdm matplotlib torch_scatter ninja einops
+```
+### Train
+We provide a sh file for training. Please modify parameters and gpus in it.
+```bash
+cd ./examples/bidiff
+bash ./scripts/train_bidiff.sh
+```
+
+### Inference
+We provide a sh file for inference.
+```bash
+cd ./examples/bidiff
+bash ./scripts/sample_bidiff.sh
+```
+And you can specify the batch inference configure file by ```--sample_config_file```. In the configure file (json), you can specify multiple prompts and parameters, and the number of all parameters should be consistent. Inference will be executed repeatedly with prompts x negative_prompts x PARAMETERS times.
+
 
 
 ## Citation

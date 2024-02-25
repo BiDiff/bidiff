@@ -1,0 +1,68 @@
+data:
+  train_set:
+    root: './dataset/objaverse_dep_512'
+    extra_view_root: './dataset/objaverse_dep_512_extra' # novel view supervision
+    instance_file: './data/objaverse_32k/train.txt'
+    use_depth: True
+    use_pose: True
+    dataset_name: 'objaverse_32k'
+    path_prefix: ''
+    path_infix: ''
+    path_suffix: 'png'
+    file_prefix: ''
+    path_infix_dep: ''
+    path_suffix_dep: 'png'
+    file_suffix_dep: '_depth'
+    load_views: 8
+    num_main_views: 1
+    is_train: True
+    use_cache: False
+    prompt_file: './data/objaverse_32k/Cap3D_automated_Objaverse.csv'
+    use_view_prompt: False
+    pre_tokenize: True # 
+    tokenizer_max_length: 77
+    use_pre_process_prompt: True
+    pre_prompt_encode: True # 
+    use_token_attention_mask: True
+    pre_prompt_embed_cache: './dataset/embed/embed_obj_cap3d'
+    use_3d_prior: False # add 3d prior
+    load_obj: True # also load kal object
+    render_img_online: False # render imgs in dataloader
+    voxel_cond: False # add voxel condition
+    latent_root: './dataset/latents'
+    sdf_root: './dataset/objaverse_sdf'
+    voxel_root: './dataset/voxel_data_objaverse'
+    obj_root: './dataset/objaverse_glb/hf-objaverse-v1/glbs'
+    mesh_npy_root: './dataset/objaverse_npy' # accelerate data loading (optional)
+    transform:
+      size: 512
+    transform_dep:
+      size: 512
+    rays_res: 64
+    sdf_gen: True
+model:
+  in_ch: 56 
+  regress_rgb: False #
+  foundation_model: 'if'
+  debug_sd_feat: True
+  learn_bg_color: False
+  pos_enc: True
+  blend_x0: True
+  extra_view_num: 8
+  disable_in_color_loss: True
+  abandon_sdf_x0: True
+  debug_regress: False
+  use_resnetfc: True 
+  use_3d_prior: False # add 3d prior
+  use_controlnet_cond_embedding: True
+  control_3d: False # also tune 3d denoiser
+  dpm_solver_3d: False
+  model_type: 'text300M' # ['image300M', 'text300M']
+  direct_use_3d: False
+  view_attn_id: [1, 2, 3]
+  num_views: 8
+  use_view_embed: True
+  iso_surface: 'dmtet'
+  input_res: 64
+  render_res: 512
+  sdf_gen: True

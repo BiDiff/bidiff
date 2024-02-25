@@ -1,0 +1,12 @@
+{
+    "prompts": [
+        "a ficus planted in a pot"
+    ],
+    "negative_prompts": [""],
+    "num_inference_steps": [25],
+    "cond_guidance_interval": [80],
+    "control_guidance_interval": [1000],
+    "cond_decouple": [false],
+    "cond_guidance_scale": [7.0],
+    "text_guidance_scale": [7.0]
+}

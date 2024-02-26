@@ -522,7 +522,7 @@ class Denoiser3DV2Rast(nn.Module):
         #                          'mesh_{:0>8d}_{}_lod{:0>1d}.ply'.format(iter_step, meta, lod)))
         mesh.export(save_path)
     
-    def cal_losses_rgb(self, buffers, iter_step, sample_rays):
+    def cal_losses_rgb(self, buffers, iter_step, sample_rays, vis_iter=200):
         # only compute color loss for input views
         true_rgb = sample_rays['mv_images'][0]# nv, 3, h, w
         true_depth = sample_rays['mv_depths'][0] # nv, h, w
@@ -533,7 +533,7 @@ class Denoiser3DV2Rast(nn.Module):
         
         color_loss = ((pred_color - true_rgb) * object_mask.unsqueeze(1)).abs().mean()
         # visualization during training
-        if iter_step % 1000 == 0:
+        if iter_step % vis_iter == 0:
             save_gt_color = (true_rgb + 1) / 2
             save_gt_color = save_gt_color.view(-1, res, res, 3).permute(0, 3, 1, 2)
             save_pred_color = (pred_color + 1) / 2
@@ -544,7 +544,7 @@ class Denoiser3DV2Rast(nn.Module):
         losses = {'color_loss': color_loss.detach().item()}
         return color_loss, losses
     
-    def cal_losses_rast_flexi(self, buffers, target, iter_step, sample_rays=None):
+    def cal_losses_rast_flexi(self, buffers, target, iter_step, sample_rays=None, vis_iter=200):
         prefix = ''
         mask_loss = (buffers['mask'] - target['mask']).abs().mean()
         depth_loss = (((((buffers['depth'] - (target['depth']))* target['mask'])**2).sum(-1)+1e-8)).sqrt().mean() * 10
@@ -561,7 +561,7 @@ class Denoiser3DV2Rast(nn.Module):
         loss = mask_loss + depth_loss + sdf_reg_loss + sdf_reg_loss_entropy
 
         # visualization
-        if iter_step % 1000 == 0:
+        if iter_step % vis_iter == 0:
             gt_mask = target['mask'].view(-1, 1, self.img_resolution, self.img_resolution)
             gt_depth = target['depth'].view(-1, 4, self.img_resolution, self.img_resolution)[:, :3, :, :]
             pred_mask = buffers['mask'].view(-1, 1, self.img_resolution, self.img_resolution)
@@ -587,7 +587,7 @@ class Denoiser3DV2Rast(nn.Module):
             # color_loss = ((((pred_color - true_rgb) * object_mask.unsqueeze(1))**2).sum(-1)+1e-8).sqrt().mean() * 10
             color_loss = ((pred_color - true_rgb) * object_mask.unsqueeze(1)).abs().mean()
             loss = loss + color_loss
-            if iter_step % 1000 == 0:
+            if iter_step % vis_iter == 0:
                 save_gt_color = (true_rgb + 1) / 2
                 save_gt_color = save_gt_color.view(-1, res, res, 3).permute(0, 3, 1, 2)
                 save_pred_color = (pred_color + 1) / 2
@@ -978,20 +978,20 @@ class Denoiser3DV2Rast(nn.Module):
         
         # also generate sdf
         if self.sdf_gen:
-            noise_scheduler = sample_rays['noise_scheduler']
-            # NOTE(lihe): the sdf data is not [-1, 1], figure out if this is a bug
-            gt_sdf = sample_rays['gt_sdf']
-            # assert gt_sdf.shape[0] == 1, 'gt sdf bs is not 1'
-            TSDF_VALUE = 0.001
-            occupancy_high = torch.where(torch.abs(gt_sdf) < TSDF_VALUE, torch.ones_like(gt_sdf), torch.zeros_like(gt_sdf))
-            occupancy = 2 * occupancy_high - 1 # [0,1] -> [-1, 1]
-            occupancy = occupancy.view(b, -1, 1)
-            raw_t = t.view([b, num_views])[:, 0] # [b,]
-            noise_level = self.log_snr(raw_t / 1000)
-            noise_level = noise_level.view(b, 1, 1)
-            alpha, sigma = self.log_snr_to_alpha_sigma(noise_level)
-            noise = torch.randn_like(occupancy)
             if self.training:
+                noise_scheduler = sample_rays['noise_scheduler']
+                # NOTE(lihe): the sdf data is not [-1, 1], figure out if this is a bug
+                gt_sdf = sample_rays['gt_sdf']
+                # assert gt_sdf.shape[0] == 1, 'gt sdf bs is not 1'
+                TSDF_VALUE = 0.001
+                occupancy_high = torch.where(torch.abs(gt_sdf) < TSDF_VALUE, torch.ones_like(gt_sdf), torch.zeros_like(gt_sdf))
+                occupancy = 2 * occupancy_high - 1 # [0,1] -> [-1, 1]
+                occupancy = occupancy.view(b, -1, 1)
+                raw_t = t.view([b, num_views])[:, 0] # [b,]
+                noise_level = self.log_snr(raw_t / 1000)
+                noise_level = noise_level.view(b, 1, 1)
+                alpha, sigma = self.log_snr_to_alpha_sigma(noise_level)
+                noise = torch.randn_like(occupancy)
                 noisy_sdf = alpha * occupancy + sigma * noise # [b, N, 1]
             else:
                 assert noisy_sdf is not None
@@ -1164,10 +1164,11 @@ class Denoiser3DV2Rast(nn.Module):
                     sdf_denoise_loss = torch.nn.functional.mse_loss(pred_sdf_masked, gt_sdf_masked) * 2e3
                 else:
                     pred_sdf = (pred_sdf.abs() < 0.001).float()
+                    pred_sdf = 2 * pred_sdf - 1
                     pred_sdf = pred_sdf.view(-1, 1)
                 pred_clean_sdf.append(pred_sdf)
 
-            if self.training and iter_step % 78 == 0:
+            if self.training and iter_step % vis_iter == 0:
                 mesh_debug_save_path = os.path.join('debug', 'mesh_rast_train.ply')
                 mesh_v, mesh_f = mesh_rast.vertices.detach().cpu().numpy(), mesh_rast.faces.detach().cpu().numpy()
                 mesh_save = trimesh.Trimesh(vertices=mesh_v, faces=mesh_f)
@@ -1218,9 +1219,9 @@ class Denoiser3DV2Rast(nn.Module):
                         
             # compute loss
             if self.training:
-                loss, losses = self.cal_losses_rgb(render_out, iter_step, sample_rays)
+                loss, losses = self.cal_losses_rgb(render_out, iter_step, sample_rays, vis_iter=vis_iter)
                 if self.extra_view_num > 0:
-                    extra_loss, extra_losses = self.cal_losses_rast_flexi(extra_render_out, target, iter_step, sample_rays)
+                    extra_loss, extra_losses = self.cal_losses_rast_flexi(extra_render_out, target, iter_step, sample_rays, vis_iter=vis_iter)
                     loss = loss + extra_loss
                     losses.update(extra_losses)
                 if self.sdf_gen:

@@ -1,5 +1,5 @@
 <p align="center" width="100%">
-<img src="assets/banner.png"  width="50%" height="80%">
+<img src="examples/bidiff/assets/banner.png"  width="50%" height="80%">
 </p>
 
 
@@ -38,21 +38,23 @@
 <img src="https://img.icons8.com/color/48/000000/youtube-play.png" width="23" height="25">
 </a>
 
-- [ ] Release the training and inference code based on diffusers.
+- [x] Implement BiDiff on [diffusers](https://github.com/huggingface/diffusers) (training && inference).
+- [x] Replace NeuS with FlexiCubes.
 - [ ] Release the weights trained on Objaverse-LVIS.
 - [ ] Release the processed training data.
+- [ ] Release the data processing scripts.
 - [ ] Re-train our model on Objaverse-XL.
 - [ ] Hugging Face live demo.
-- [x] Support fully decouple texture and geometry control (below are results from BiDiff sampling).
+- [x] Support fully decoupled texture and geometry control (below are results from BiDiff sampling).
       
 <p align="left" width="100%">
-<img src="assets/fully decouple.jpg"  width="60%" height="80%">
+<img src="examples/bidiff/assets/fully decouple.jpg"  width="60%" height="80%">
 </p>
 
 ### NEWS
 - BiDiff supports fully decoupled texture and geometry control now.
-- We are at the final stage of code-releasing and the code will be uploaded next week!
-
+- We implement an initial version of BiDiff on diffusers and improve the 3D representation from **NeuS** to [**FlexiCubes**](https://research.nvidia.com/labs/toronto-ai/flexicubes/).
+- Data, weights, and a more detailed document are coming.
 
 ### 1. High-quality 3D Object Generation
 Click the GIF to access the high-resolution video.
@@ -60,15 +62,15 @@ Click the GIF to access the high-resolution video.
 <table class="center">
   <td><p align="center" width="100%">
               <!-- <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
-                <source src="assets/case0.mp4" type="video/mp4">
+                <source src="examples/bidiff/assets/case0.mp4" type="video/mp4">
               </video> -->
-              <image src="assets/case0.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+              <image src="examples/bidiff/assets/case0.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
             </p></td>
   <td><p align="center" width="100%">
               <!-- <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
-                <source src="assets/case1.mp4" type="video/mp4">
+                <source src="examples/bidiff/assets/case1.mp4" type="video/mp4">
               </video> -->
-            <image src="assets/case1.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+            <image src="examples/bidiff/assets/case1.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
             </p></td>
   <tr>
   <td style="text-align:center;" width="320">"An eagle head."</td>
@@ -79,15 +81,15 @@ Click the GIF to access the high-resolution video.
 <table class="center">
   <td><p align="center" width="100%">
               <!-- <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
-                <source src="assets/case2.mp4" type="video/mp4">
+                <source src="examples/bidiff/assets/case2.mp4" type="video/mp4">
               </video> -->
-              <image src="assets/case2.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+              <image src="examples/bidiff/assets/case2.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
             </p></td>
   <td><p align="center" width="100%">
               <!-- <video style="width: 100%;" poster="" id="shoes-video" autoplay muted loop playsinline height="100%">
-                <source src="assets/case3.mp4" type="video/mp4">
+                <source src="examples/bidiff/assets/case3.mp4" type="video/mp4">
               </video> -->
-              <image src="assets/case3.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+              <image src="examples/bidiff/assets/case3.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
             </p></td>
   <tr>
   <td style="text-align:center;" width="320">"A Nike sport shoes."</td>
@@ -100,13 +102,13 @@ Click the GIF to access the high-resolution video.
 
 <table class="center">
   <td><div class="has-text-centered" style="width: 100%;">
-              <image src="assets/bear.png" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+              <image src="examples/bidiff/assets/bear.png" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
     </td>
   <td><div class="has-text-centered" style="width: 100%;">
-              <image src="assets/fruit.png" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+              <image src="examples/bidiff/assets/fruit.png" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
     </td>
     <td><div class="has-text-centered" style="width: 100%;">
-                <image src="assets/cow.png" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+                <image src="examples/bidiff/assets/cow.png" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
     </td>
   <tr>
   <td style="text-align:center;" width="220">"Bear."</td>
@@ -134,7 +136,7 @@ Experimental results have shown that our model achieves
 high-quality, diverse, and scalable 3D generation
 
 <p align="center" width="100%">
-<img src="assets/method.png"  width="100%" height="80%">
+<img src="examples/bidiff/assets/method.png"  width="100%" height="80%">
 </p>
 
 
@@ -144,10 +146,37 @@ The BiDiff framework operates as follows: (a) At each step of diffusion, we rend
 
 <p align="center" width="100%">
       <!-- <video muted autoplay loop>
-        <source src="assets/more.mp4" type="video/mp4">
+        <source src="examples/bidiff/assets/more.mp4" type="video/mp4">
       </video> -->
-      <image src="assets/more.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
-</p>    
+      <image src="examples/bidiff/assets/more.gif" poster="" style="width: 100%;" auto-rotate shadow-intensity="1" camera-controls touch-action="pan-y"></image>
+</p> 
+
+### Getting Started
+The code is tested on torch 2.0.1 and cuda 11.7. Data and weights will be uploaded to [here](https://drive.google.com/drive/folders/1qoHrHVcadVt9Dp7tbubkVtFwsND_L0WR?usp=sharing).
+```sh
+# cuda 11.7 torch 2.0.1 diffusers origin 0.18.0.dev0
+pip install -e ".[torch]"
+pip install git+https://github.com/NVlabs/nvdiffrast/
+pip install kaolin==0.15.0 -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.0.1_cu117.html
+sudo apt-get install libsparsehash-dev
+pip install --upgrade git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0
+pip install imageio trimesh tqdm matplotlib torch_scatter ninja einops
+```
+### Train
+We provide a sh file for training. Please modify parameters and gpus in it.
+```bash
+cd ./examples/bidiff
+bash ./scripts/train_bidiff.sh
+```
+
+### Inference
+We provide a sh file for inference.
+```bash
+cd ./examples/bidiff
+bash ./scripts/sample_bidiff.sh
+```
+And you can specify the batch inference configure file by ```--sample_config_file```. In the configure file (json), you can specify multiple prompts and parameters, and the number of all parameters should be consistent. Inference will be executed repeatedly with prompts x negative_prompts x PARAMETERS times.
+
 
 
 ## Citation

@@ -155,7 +155,8 @@ class SparseDMTetRenderer(nn.Module):
                  partial_vol_origin=None, # [3]
                  emb=None, t=None, vol_size=None, mesh=None,
                  kal_cameras=None,
-                 res=128):
+                 res=128, query_pts=None,
+                 color_gen=None):
         # cam_mv: b, nv, 4, 4
         cam_mv_inv = torch.inverse(cam_mv)
         cam_mv_inv = cam_mv_inv.unsqueeze(0)
@@ -282,6 +283,58 @@ class SparseDMTetRenderer(nn.Module):
             antilias_mask = torch.cat(antilias_mask_list, dim=0) # [nv*res*res, 1]
         
         buffers['color_fine'] = color
+
+        # color gen
+        if color_gen:
+            assert query_pts is not None
+            ren_geo_feats, ren_rgb_feats, ren_ray_diff, ren_mask, _, _ = self.rendering_projector.compute(
+                    # tex_pos.view(-1, 1, 3),
+                    query_pts.view(-1, 1, 3),
+                    # * 3d geometry feature volumes
+                    geometryVolume=volume[0],
+                    geometryVolumeMask=conditional_valid_mask_volume[0],
+                    # * 2d rendering feature maps
+                    rendering_feature_maps=feature_maps,
+                    color_maps=color_maps,
+                    w2cs=w2cs,
+                    intrinsics=intrinsics,
+                    img_wh=img_wh,
+                    query_img_idx=0,  # the index of the N_views dim for rendering
+                    query_c2w=cam_mv[i:i+1], # query_c2w, # NOTE(lihe): we render multiple views at once for now
+                    # NOTE(lihe): to reduce memory, feed voxel param to generate mask
+                    vol_dims=vol_dims,
+                    partial_vol_origin=partial_vol_origin,
+                    vol_size=vol_size,
+                )
+            if self.pos_code is not None:
+                # pos_feats = self.pos_code(tex_pos.view(-1, 3))
+                pos_feats = self.pos_code(query_pts.view(-1, 3))
+                pos_feats = pos_feats.view(-1, 1, self.pos_code.d_out)
+                if not self.use_resnetfc:
+                    ren_geo_feats = torch.cat([ren_geo_feats, pos_feats], dim=-1)
+            if self.use_resnetfc:
+                # NOTE(lihe): [N_views, N_rays, n_samples, 3+c]
+                rgb_in = ren_rgb_feats[..., :self.rgb_ch] # [N_views, N_rays, n_samples, 3]
+                feats_map = ren_rgb_feats[..., self.rgb_ch:]
+                feats_map = feats_map.mean(dim=0) # [N_rays, n_samples, c]
+
+                # NOTE(lihe): test not cat x0 information
+                rgb_cat = rgb_in.permute(1,2,3,0) # [N_rays, n_samples, 3, N_views]
+                rgb_cat = rgb_cat.reshape([*rgb_cat.shape[:2], -1]) # [N_rays, n_samples, 3*N_views]
+                feats_map = torch.cat([feats_map, rgb_cat], dim=-1) # [N_rays, n_samples, c + 3*8]
+                
+                # z_features = torch.cat([pos_feats.view(-1, self.pos_code.d_out), dirs], dim=-1).unsqueeze(0)# [1, -1, d_out + 3]
+                z_features = pos_feats.view(-1, self.pos_code.d_out).unsqueeze(0)# [1, -1, d_out]
+                latent = torch.cat([feats_map.view(-1, feats_map.shape[-1]), ren_geo_feats.view(-1, ren_geo_feats.shape[-1])], dim=-1).unsqueeze(0) # [1, n_rays*n_samples, c+3x8 + geo_ch]
+                latent = torch.cat([latent, z_features], dim=-1)
+                # formulate resnetfc inputs
+                # NOTE(lihe):debug
+                sampled_color, rendering_valid_mask = self.rendering_network(latent, t, ren_mask,)
+                query_colors = sampled_color.view(-1, 3)
+                buffers['query_colors'] = query_colors
+            else:
+                raise NotImplementedError
+
         return buffers
 
 

@@ -817,6 +817,7 @@ class BidiffPipeline(DiffusionPipeline, TextualInversionLoaderMixin, LoraLoaderM
         cond_guidance_scale=7.0,
         text_guidance_scale=7.0,
         mesh_save_path=None,
+        save_vis=True,
     ):
         r"""
         Function invoked when calling the pipeline for generation.
@@ -981,6 +982,13 @@ class BidiffPipeline(DiffusionPipeline, TextualInversionLoaderMixin, LoraLoaderM
         else:
             noisy_sdf_input = None
         pred_clean_sdf = None
+
+        # NOTE: add color gen
+        if self.bidiff.color_gen:
+            noisy_color_voxels_input = torch.randn([batch_size, 96*96*96, 3], device=inputs.device)
+        else:
+            noisy_color_voxels_input = None
+        pred_color_voxels = None
         # 6. Prepare extra step kwargs. TODO: Logic should ideally just be moved out of the pipeline
         extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
 
@@ -1013,13 +1021,20 @@ class BidiffPipeline(DiffusionPipeline, TextualInversionLoaderMixin, LoraLoaderM
             timesteps_sdf = sdf_scheduler.timesteps
         else:
             sdf_scheduler = None
+        
+        if self.bidiff.color_gen:
+            color_scheduler = DDPMScheduler(num_train_timesteps=1000, beta_schedule="exp", prediction_type="sample", coefficient = -20.0)
+            color_scheduler.set_timesteps(num_inference_steps, device=device)
+            timesteps_color = color_scheduler.timesteps
+        else:
+            color_scheduler = None
 
         # 7. Denoising loop
         # expand sample rays
         if do_classifier_free_guidance:
             guid_repeat = 3 if cond_decouple else 2
             for key in sample_rays.keys():
-                if sample_rays[key] is not None and key not in ['step', 'alpha_inter_ratio_lod0', 'noise_scheduler', 'voxels', 'feature_volume_save_path', 'feature_volume_load_path', 'gt_mesh']:
+                if sample_rays[key] is not None and key not in ['step', 'alpha_inter_ratio_lod0', 'noise_scheduler', 'color_noise_scheduler', 'voxels', 'feature_volume_save_path', 'feature_volume_load_path', 'gt_mesh']:
                 # if isinstance(sample_rays[key], torch.Tensor):
                     sample_rays[key] = sample_rays[key].repeat([guid_repeat]+[1]*(len(sample_rays[key].shape) - 1))
                 if key == 'voxels' and sample_rays[key] is not None: # voxels is list
@@ -1031,6 +1046,8 @@ class BidiffPipeline(DiffusionPipeline, TextualInversionLoaderMixin, LoraLoaderM
                     assert t == timesteps_3d[i], f"2D sampling steps {timesteps} must match the 3d steps {timesteps_3d}."
                 if sdf_scheduler is not None:
                     assert t == timesteps_sdf[i], f"2D sampling steps {timesteps} must match the sdf steps {timesteps_sdf}."
+                if color_scheduler is not None:
+                    assert t == timesteps_color[i], f"2D sampling steps {timesteps} must match the color steps {timesteps_color}."
                 if hasattr(self.bidiff, 'denoiser3d') and hasattr(self.bidiff.denoiser3d, 'sdf_def_network'):
                     self.bidiff.denoiser3d.sdf_def_network.train()
                     self.bidiff.denoiser3d.sdf_def_network.training = False
@@ -1075,6 +1092,16 @@ class BidiffPipeline(DiffusionPipeline, TextualInversionLoaderMixin, LoraLoaderM
                 else:
                     assert do_classifier_free_guidance, 'currently we should use classifier free guidance'
                     noisy_sdf = None
+                
+                # NOTE: color diff
+                if do_classifier_free_guidance and self.bidiff.color_gen:
+                    noisy_color_voxels = torch.cat([noisy_color_voxels_input]*guid_repeat)
+                    noisy_color_voxels = color_scheduler.scale_model_input(noisy_color_voxels, t)
+                    if pred_color_voxels is not None:
+                        pred_color_voxels = torch.cat([pred_color_voxels]*guid_repeat)
+                else:
+                    assert do_classifier_free_guidance, 'currently we should use classifier free guidance'
+                    noisy_color_voxels = None
 
                 if self.bidiff.use_3d_prior and self.bidiff.skip_denoise and i==0:
                     # skip connect neus denoise
@@ -1185,6 +1212,8 @@ class BidiffPipeline(DiffusionPipeline, TextualInversionLoaderMixin, LoraLoaderM
                     cond_decouple=cond_decouple,
                     noisy_latents_hr=model_input_hr if inputs_hr is not None else None,
                     pred_clean_sdf=pred_clean_sdf, # NOTE(lihe): also feed pred clean sdf
+                    noisy_color_voxels=noisy_color_voxels,
+                    save_vis=save_vis,
                 )
 
                 noise_pred = output.model_pred
@@ -1240,6 +1269,14 @@ class BidiffPipeline(DiffusionPipeline, TextualInversionLoaderMixin, LoraLoaderM
                     # pred_clean_sdf = pred_clean_sdf_uncond + guidance_scale * (pred_clean_sdf_text - pred_clean_sdf_uncond)
                     # NOTE(lihe): dont use guidance for debugging
                     pred_clean_sdf = pred_clean_sdf_text
+                
+                if do_classifier_free_guidance and self.bidiff.color_gen:
+                    pred_color_voxels = output.pred_color_voxels
+                    if cond_decouple:
+                        _, _, pred_color_voxels = pred_color_voxels.chunk(guid_repeat)
+                    else:
+                        pred_color_voxels_uncond, pred_color_voxels_text = pred_color_voxels.chunk(2)
+                    pred_color_voxels = pred_color_voxels_uncond + guidance_scale * (pred_color_voxels_text - pred_color_voxels_uncond)
                         
                 if "variance_type" in self.scheduler.config:
                     if self.scheduler.config.variance_type not in ["learned", "learned_range"] and noise_pred.shape[1] == 6:
@@ -1278,6 +1315,24 @@ class BidiffPipeline(DiffusionPipeline, TextualInversionLoaderMixin, LoraLoaderM
                     variance = (sigma_next ** 2) * c
                     noise = torch.randn_like(pred_clean_sdf)
                     noisy_sdf_input = mean + torch.sqrt(variance) * noise
+                
+                # if self.bidiff.color_gen and i < len(timesteps) - 1:
+                if self.bidiff.color_gen:
+                    noisy_color_voxels_input = color_scheduler.step(
+                        pred_color_voxels, t, noisy_color_voxels_input, **extra_step_kwargs, return_dict=False
+                    )[0]
+                    # time = t.repeat(batch_size).view(-1)
+                    # time_next = timesteps[i+1].repeat(batch_size).view(-1)
+                    # log_snr = self.bidiff.denoiser3d.log_snr(time/1000.).view(-1, 1, 1)
+                    # log_snr_next = self.bidiff.denoiser3d.log_snr(time_next/1000.).view(-1, 1, 1)
+                    # alpha, sigma = self.bidiff.denoiser3d.log_snr_to_alpha_sigma(log_snr)
+                    # alpha_next, sigma_next = self.bidiff.denoiser3d.log_snr_to_alpha_sigma(log_snr_next)
+
+                    # c = -torch.special.expm1(log_snr - log_snr_next)
+                    # mean = alpha_next * (pred_color_voxels * (1 - c) / alpha + c * pred_color_voxels)
+                    # variance = (sigma_next ** 2) * c
+                    # noise = torch.randn_like(pred_color_voxels)
+                    # noisy_color_voxels_input = mean + torch.sqrt(variance) * noise
 
                 # call the callback, if provided
                 if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0):

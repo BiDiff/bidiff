@@ -81,6 +81,8 @@ class GeneralMVDataset(Dataset):
         obj_root=None,
         mesh_npy_root=None,
         get_res_64=False,
+        color_grid_root=None,
+        load_color_grid=False,
         **kwargs
     ):
         super().__init__()
@@ -127,6 +129,8 @@ class GeneralMVDataset(Dataset):
         self.obj_root = obj_root
         self.refer_view_id = refer_view_id
         self.get_res_64 = get_res_64
+        self.color_grid_root = color_grid_root
+        self.load_color_grid = load_color_grid
 
         if self.load_obj:
             self.obj_path_list = glob.glob(os.path.join(self.obj_root, '*/*.glb'))
@@ -184,6 +188,10 @@ class GeneralMVDataset(Dataset):
                     obj_flag = (ins_id in self.obj_id_list) and (ins_id in self.mesh_npy_id_list)
                 else:
                     obj_flag = True
+                if self.load_color_grid:
+                    grid_path = os.path.join(self.color_grid_root, ins_id + '.npz')
+                    color_grid_flag = os.path.exists(grid_path)
+                    obj_flag = obj_flag and color_grid_flag
                 if os.path.exists(image_path) and os.path.exists(pose_path) and latent_flag and sdf_flag and voxel_flag and obj_flag:
                     valid_list.append(ins_id)
             print("==========instance num filtered from {} to {}========".format(len(self.instance_list), len(valid_list)))
@@ -506,6 +514,19 @@ class GeneralMVDataset(Dataset):
                 
                 del mesh
                 del camera
+        
+        if self.load_color_grid:
+            grid_path = os.path.join(self.color_grid_root, instance_name + '.npz')
+            color_grid = np.load(grid_path)
+            obj_colors = color_grid['colors']
+            obj_inds = color_grid['inds']
+            query_pts = np.load('cache/grid_batch.npy')
+            color_voxels = np.zeros([query_pts.shape[0], 7]) - 1
+            
+            color_voxels[:, :3] = query_pts
+            color_voxels[obj_inds, 3:6] = obj_colors
+            color_voxels[obj_inds, -1] = 1.
+            data['color_voxels'] = color_voxels.astype(np.float32)
 
         if self.use_cache:
             assert self.cache[index] is None
@@ -774,7 +795,7 @@ class BidiffDataset(Dataset):
 def collate_fn(examples):
     stack_tensor_keys = ['mv_images', 'mv_depths', 'de_depths', 'token_ids', 'token_attention_mask', 'embed', 'main_view_id', 
                          'K', 'c2ws', 'w2cs', 'rays_o', 'rays_d', 'affine_mat','near_fars', 'latents', 'gt_sdf', 'pos_embed',
-                         'mv_images_high']
+                         'mv_images_high', 'color_voxels']
     extra_stack_tensor_keys = ['extra_' + x for x in stack_tensor_keys]
     list_tensor_keys = ['voxels'] # []
     other_keys = ['caption', 'gt_mesh'] # , 'caption_ref'

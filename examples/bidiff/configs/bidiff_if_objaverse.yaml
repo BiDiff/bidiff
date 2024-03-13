@@ -34,12 +34,14 @@ data:
     voxel_root: './dataset/voxel_data_objaverse'
     obj_root: './dataset/objaverse_glb/hf-objaverse-v1/glbs'
     mesh_npy_root: './dataset/objaverse_npy' # accelerate data loading (optional)
+    color_grid_root: './dataset/objaverse_color_grids'
+    load_color_grid: True
     transform:
       size: 512
     transform_dep:
       size: 512
     rays_res: 64
-    sdf_gen: True
+    sdf_gen: False
 model:
   in_ch: 56 
   regress_rgb: False #
@@ -65,4 +67,5 @@ model:
   iso_surface: 'dmtet'
   input_res: 64
   render_res: 512
-  sdf_gen: True
+  sdf_gen: False
+  color_gen: True

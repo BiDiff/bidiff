@@ -886,6 +886,8 @@ def main(args):
                 gt_sdf = batch.get('gt_sdf', None)
                 pos_embed = batch.get('pos_embed', None)
                 mv_images_high = batch.get('mv_images_high', None)
+                color_voxels = batch.get('color_voxels', None)
+                color_noise_scheduler = DDPMScheduler(num_train_timesteps=1000, beta_schedule="exp", coefficient = -20.0)
                 sample_rays=dict(rays_d=rays_d, rays_o=rays_o, near_fars=near_fars, K=K, c2ws=c2ws, w2cs=w2cs, affine_mat=affine_mat,
                                  mv_images=mv_images, mv_depths=mv_depths,
                                  extra_rays_d=extra_rays_d, extra_rays_o=extra_rays_o, extra_near_fars=extra_near_fars, extra_K=extra_K, extra_c2ws=extra_c2ws, extra_w2cs=extra_w2cs, extra_affine_mat=extra_affine_mat,
@@ -898,6 +900,8 @@ def main(args):
                                  pos_embed=pos_embed,
                                  gt_mesh=gt_mesh,
                                  mv_images_high=mv_images_high,
+                                 color_voxels=color_voxels,
+                                 color_noise_scheduler=color_noise_scheduler,
                                  )
 
                 model_input = mv_images

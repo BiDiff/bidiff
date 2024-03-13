@@ -48,7 +48,7 @@ class UNetModel(nn.Module):
                 nn.Linear(emb_dim, emb_dim)
             )
 
-        self.input_emb = conv_nd(world_dims, 2, base_channels, 3, padding=1)
+        self.input_emb = conv_nd(world_dims, 3, base_channels, 3, padding=1)
         self.downs = nn.ModuleList([])
         self.ups = nn.ModuleList([])
         num_resolutions = len(in_out)
@@ -58,8 +58,8 @@ class UNetModel(nn.Module):
             is_last = ind >= (num_resolutions - 1)
             res = image_size // ds
             # use_cross = (res == 4 or res == 8)
-            # use_cross = (res == 6 or res == 12)
-            use_cross = (res == 6 or res == 12 or res == 24 or res == 48) # NOTE!!!!
+            use_cross = (res == 6 or res == 12)
+            # use_cross = (res == 6 or res == 12 or res == 24 or res == 48) # NOTE!!!!
             print("===down use cross====", use_cross, res)
             self.downs.append(nn.ModuleList([
                 ResnetBlock(world_dims, dim_in, dim_out,
@@ -100,8 +100,8 @@ class UNetModel(nn.Module):
             is_last = ind >= (num_resolutions - 1)
             res = image_size // ds
             # use_cross = (res == 4 or res == 8)
-            # use_cross = (res == 6 or res == 12)
-            use_cross = (res == 6 or res == 12 or res == 24 or res == 48)
+            use_cross = (res == 6 or res == 12)
+            # use_cross = (res == 6 or res == 12 or res == 24 or res == 48)
             print("===up use cross====", use_cross, res)
             self.ups.append(nn.ModuleList([
                 ResnetBlock(world_dims, dim_out * 2, dim_in,
@@ -126,12 +126,12 @@ class UNetModel(nn.Module):
             activation_function()
         )
 
-        self.out = conv_nd(world_dims, base_channels, 1, 3, padding=1)
+        self.out = conv_nd(world_dims, base_channels, 16, 3, padding=1)
 
     def forward(self, x, t, img_condition, text_condition, projection_matrix, x_self_cond=None, kernel_size=None, ref_img=None):
 
-        x_self_cond = default(x_self_cond, lambda: torch.zeros_like(x))
-        x = torch.cat((x, x_self_cond), dim=1)
+        # x_self_cond = default(x_self_cond, lambda: torch.zeros_like(x))
+        # x = torch.cat((x, x_self_cond), dim=1) # dont use self cond
 
         if self.verbose:
             print("input size:")

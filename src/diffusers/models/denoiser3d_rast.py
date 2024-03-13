@@ -349,6 +349,7 @@ class Denoiser3DV2Rast(nn.Module):
                  img_resolution=1024,
                  input_res=64,
                  render_res=512,
+                 color_gen=False,
                  ) -> None:
         super(Denoiser3DV2Rast, self).__init__()
         # 1. build pyramid featurenet, we now only implement one stage
@@ -376,7 +377,8 @@ class Denoiser3DV2Rast(nn.Module):
                                             new_sdf_arc=new_sdf_arc,
                                             sdf_gen=sdf_gen,
                                             voxel_cond=voxel_cond,
-                                            iso_surface=iso_surface,)
+                                            iso_surface=iso_surface,
+                                            color_gen=color_gen)
         if use_resnetfc:
             from .resnetfc import ResnetFC
             self.rendering_network = ResnetFC(d_out=img_ch, d_in=self.code.d_out, # NOTE(lihe): not use diretions # self.code.d_out + 3,
@@ -444,7 +446,7 @@ class Denoiser3DV2Rast(nn.Module):
         self.scale = scale
 
         query_pts = np.load('cache/grid_batch.npy')
-        query_pts = torch.from_numpy(query_pts).float()
+        query_pts = torch.from_numpy(query_pts).float().cuda()
         self.query_pts = query_pts
         self.log_snr = beta_linear_log_snr
         self.log_snr_to_alpha_sigma = log_snr_to_alpha_sigma
@@ -476,6 +478,7 @@ class Denoiser3DV2Rast(nn.Module):
         if self.lazy_3d:
             assert lazy_t is not None
         self.sdf_gen = sdf_gen
+        self.color_gen = color_gen
         self.voxel_cond = voxel_cond
 
         self.input_res = input_res
@@ -531,7 +534,8 @@ class Denoiser3DV2Rast(nn.Module):
         true_rgb = true_rgb.permute(0,2,3,1).reshape([-1, c]) # nv*h*w, 3
         pred_color = buffers['color_fine']
         
-        color_loss = ((pred_color - true_rgb) * object_mask.unsqueeze(1)).abs().mean()
+        # color_loss = ((pred_color - true_rgb) * object_mask.unsqueeze(1)).abs().mean()
+        color_loss = 0. # DEBUG: dont compute fixed view color loss
         # visualization during training
         if iter_step % vis_iter == 0:
             save_gt_color = (true_rgb + 1) / 2
@@ -541,7 +545,8 @@ class Denoiser3DV2Rast(nn.Module):
             save_color = torch.cat([save_gt_color, save_pred_color], dim=0)
             save_image(save_color, f'debug/rast_train_color_given_{DEBUG_ID}.png', nrow=4)
         
-        losses = {'color_loss': color_loss.detach().item()}
+        # losses = {'color_loss': color_loss.detach().item()}
+        losses = {'color_loss': 0.}
         return color_loss, losses
     
     def cal_losses_rast_flexi(self, buffers, target, iter_step, sample_rays=None, vis_iter=200):
@@ -571,8 +576,11 @@ class Denoiser3DV2Rast(nn.Module):
         if buffers.get('pred_normal', None) is not None:
             pred_norm = buffers['pred_normal']
             gt_norm = buffers['gt_normal']
-            # norm_loss = (((((pred_norm - gt_norm)* target['mask'])**2).sum(-1)+1e-8)).sqrt().mean() * 10
-            norm_loss = ((pred_norm - gt_norm) * target['mask']).abs().mean()
+            # norm_loss = ((pred_norm - gt_norm) * target['mask']).abs().mean()
+            #
+            valid_pix_num = max(target['mask'].sum(), 1.)
+            norm_loss = ((pred_norm - gt_norm) * target['mask']).abs().sum() / valid_pix_num
+            #
             loss = loss + norm_loss
         else:
             norm_loss = 0.
@@ -585,7 +593,9 @@ class Denoiser3DV2Rast(nn.Module):
             true_rgb = true_rgb.permute(0,2,3,1).reshape([-1, c]) # nv*h*w, 3
             pred_color = buffers['color_fine']
             # color_loss = ((((pred_color - true_rgb) * object_mask.unsqueeze(1))**2).sum(-1)+1e-8).sqrt().mean() * 10
-            color_loss = ((pred_color - true_rgb) * object_mask.unsqueeze(1)).abs().mean()
+            # color_loss = ((pred_color - true_rgb) * object_mask.unsqueeze(1)).abs().mean()
+            valid_pix_num = max(object_mask.sum(), 1.)
+            color_loss = ((pred_color - true_rgb) * object_mask.unsqueeze(1)).abs().sum() / valid_pix_num
             loss = loss + color_loss
             if iter_step % vis_iter == 0:
                 save_gt_color = (true_rgb + 1) / 2
@@ -917,7 +927,7 @@ class Denoiser3DV2Rast(nn.Module):
                 unet=None, encoder_hidden_states=None, model_3d=None, dpm_solver_scheduler=None,
                 noisy_sdf=None, mesh_save_path=None, only_train=None, background_rgb=-1,
                 pyramid_feats=None, conditional_features_lod0_cache=[], new_batch=False, feats_64=None,
-                pred_clean_sdf=None):
+                pred_clean_sdf=None, color_voxels=None, noisy_color_voxels=None):
         """
         Args:
             feats: [B, 8, C, res, res]
@@ -998,6 +1008,27 @@ class Denoiser3DV2Rast(nn.Module):
         else:
             noisy_sdf = None
         
+        if self.color_gen:
+            if self.training:
+                # same schedule as img
+                raw_t = t.view([b, num_views])[:, 0] # [b,]
+                color_voxels = sample_rays['color_voxels'][:, :, 3:6] # b, n, 3
+                noise = torch.randn_like(color_voxels)
+                noisy_color_voxels = sample_rays['color_noise_scheduler'].add_noise(color_voxels, noise, raw_t)
+                # np.save('debug/noisy_color_voxels.npy', noisy_color_voxels.detach().cpu().numpy())
+                # np.save('debug/gt_color_voxels.npy', color_voxels.detach().cpu().numpy())
+                
+                # color_voxels = sample_rays['color_voxels'][:, :, 3:6] # b, n, 3
+                # color_voxel_mask = sample_rays['color_voxels'][:, :, -1] > 0 # b, n
+                # raw_t = t.view([b, num_views])[:, 0] # [b,]
+                # noise_level = self.log_snr(raw_t / 1000)
+                # noise_level = noise_level.view(b, 1, 1)
+                # alpha, sigma = self.log_snr_to_alpha_sigma(noise_level)
+                # noise = torch.randn_like(color_voxels)
+                # noisy_color_voxels = alpha * color_voxels + sigma * noise # b, n, 3
+            else:
+                assert noisy_color_voxels is not None
+
         if self.voxel_cond:
             voxels = sample_rays['voxels'] # [b, n, 3]
         else:
@@ -1106,6 +1137,7 @@ class Denoiser3DV2Rast(nn.Module):
         render_dep = []
         pred_clean_sdf = []
         all_attn_mask = []
+        pred_color_voxels = []
         for bs_id in range(b):
             with torch.autocast('cuda', enabled=False):
                 conditional_features_lod0 = self.sdf_def_network.get_conditional_volume(
@@ -1121,7 +1153,9 @@ class Denoiser3DV2Rast(nn.Module):
                         xm=self.xm,
                         options_3d=self.options_3d,
                         noisy_sdf=noisy_sdf[bs_id] if self.sdf_gen else None,
-                        voxels=voxels[bs_id] if voxels is not None else None
+                        voxels=voxels[bs_id] if voxels is not None else None,
+                        noisy_color_voxels=noisy_color_voxels[bs_id] if noisy_color_voxels is not None else None,
+                        t=t_[bs_id:bs_id+1] if t_ is not None else None
                     )
             for k, v in conditional_features_lod0.items():
                 conditional_features_lod0[k] = v.to(pyramid_feats.dtype)
@@ -1149,6 +1183,8 @@ class Denoiser3DV2Rast(nn.Module):
                                                     mesh=None, # NOTE: feed previous constructed mesh
                                                     kal_cameras=cameras,
                                                     res=self.render_res,
+                                                    query_pts=self.query_pts.detach(),
+                                                    color_gen=self.color_gen,
                                                     )
             # mesh = render_out['mesh']
             # NOTE: compute sdf loss
@@ -1167,6 +1203,28 @@ class Denoiser3DV2Rast(nn.Module):
                     pred_sdf = 2 * pred_sdf - 1
                     pred_sdf = pred_sdf.view(-1, 1)
                 pred_clean_sdf.append(pred_sdf)
+            
+            if self.color_gen:
+                query_colors = render_out.pop('query_colors')
+                if self.training:
+                    # color_voxel_mask = color_voxel_mask.view(-1)
+                    # color_voxel_loss = (query_colors - color_voxels.view(-1, 3))[color_voxel_mask].abs().mean()
+                    color_voxel_loss =F.l1_loss(query_colors, color_voxels.view(-1, 3), reduction='mean') 
+                    # sdf loss
+                    # gt_sdf = sample_rays['gt_sdf']
+                    # # assert gt_sdf.shape[0] == 1, 'gt sdf bs is not 1'
+                    # TSDF_VALUE = 0.001
+                    # occupancy_high = torch.where(torch.abs(gt_sdf) < TSDF_VALUE, torch.ones_like(gt_sdf), torch.zeros_like(gt_sdf))
+                    # query_pts = self.query_pts.to(con_volume.device)
+                    # pred_sdf = flex_render.compute_sdf(query_pts, mesh_rast.vertices, mesh_rast.faces)
+                    # pred_sdf_masked = pred_sdf.view(-1)
+                    # pred_sdf_masked = pred_sdf_masked[occupancy_high.view(-1) > 0]
+                    # gt_sdf_masked = gt_sdf.view(-1)
+                    # gt_sdf_masked = gt_sdf_masked[occupancy_high.view(-1) > 0]
+                    # sdf_loss = torch.nn.functional.mse_loss(pred_sdf_masked, gt_sdf_masked) * 2e3
+                else:
+                    query_colors = query_colors.view(-1, 3)
+                pred_color_voxels.append(query_colors)
 
             if self.training and iter_step % vis_iter == 0:
                 mesh_debug_save_path = os.path.join('debug', 'mesh_rast_train.ply')
@@ -1227,6 +1285,9 @@ class Denoiser3DV2Rast(nn.Module):
                 if self.sdf_gen:
                     loss = loss + sdf_denoise_loss
                     losses.update({'sdf_loss':sdf_denoise_loss.item()})
+                if self.color_gen:
+                    loss = loss + color_voxel_loss
+                    losses.update({'color_voxel_loss':color_voxel_loss.item()})
             else:
                 loss = 0.
                 losses = {}
@@ -1247,8 +1308,13 @@ class Denoiser3DV2Rast(nn.Module):
             pred_clean_sdf = torch.stack(pred_clean_sdf) # [2, N, 1]
         else:
             pred_clean_sdf = None
+        
+        if self.color_gen and not self.training:
+            pred_color_voxels = torch.stack(pred_color_voxels) # [2, N, 3]
+        else:
+            pred_color_voxels = None
             
-        return out_color, loss_all, losses, pred_x0, noisy_latents_3d, noisy_latents_3d_prev, pred_clean_sdf
+        return out_color, loss_all, losses, pred_x0, noisy_latents_3d, noisy_latents_3d_prev, pred_clean_sdf, pred_color_voxels
         
         
 

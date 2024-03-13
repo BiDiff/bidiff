@@ -22,6 +22,7 @@ import random
 import math
 
 from diffusers.models.resnetfc import ResnetFC
+from diffusers.models.diff3d.unet import UNetModel
 
 torch._C._jit_set_profiling_executor(False)
 torch._C._jit_set_profiling_mode(False)
@@ -152,7 +153,7 @@ class LatentVolumeNetwork(nn.Module):
                  regnet_d_out=8, num_sdf_layers=4,
                  multires=6, add_temb=False, temb_channels=None,
                  use_3d_prior=False, new_sdf_arc=False, sdf_gen=False,
-                 voxel_cond=False, iso_surface='dmtet',
+                 voxel_cond=False, iso_surface='dmtet', color_gen=False,
                  ):
         super(LatentVolumeNetwork, self).__init__()
 
@@ -194,6 +195,31 @@ class LatentVolumeNetwork(nn.Module):
         self.sdf_gen = sdf_gen
         if self.sdf_gen:
             sparse_ch_in = sparse_ch_in + 1
+        
+        self.color_gen = color_gen
+        if self.color_gen:
+            # sparse_ch_in = sparse_ch_in + 3
+            sparse_ch_in = sparse_ch_in + 16
+        
+            # NOTE(lihe): occ diff
+            attention_ds = []
+            for res in [4, 8]:
+                # attention_ds.append(64 // int(res))
+                attention_ds.append(96 // int(res))
+            self.occ_model = UNetModel(
+                image_size=96, # 64,
+                base_channels=32,
+                dim_mults=(1, 2, 4, 8, 8), dropout=0.0,
+                use_sketch_condition=False,
+                use_text_condition=True,
+                kernel_size=2.0,
+                world_dims=3,
+                num_heads=4, vit_global=False, vit_local=True,
+                attention_resolutions=tuple(attention_ds), with_attention=True,
+                verbose=False,
+                text_condition_dim=temb_channels, # 320
+                image_condition_dim=56,
+                )
         
         if voxel_cond:
             sparse_ch_in = sparse_ch_in + 16
@@ -331,7 +357,7 @@ class LatentVolumeNetwork(nn.Module):
 
     def get_conditional_volume(self, feature_maps, partial_vol_origin, proj_mats, sizeH=None, sizeW=None, lod=0,
                                pre_coords=None, pre_feats=None, debug_images=None, emb=None, noisy_latents_3d=None,
-                               xm=None, options_3d=None, noisy_sdf=None, voxels=None,
+                               xm=None, options_3d=None, noisy_sdf=None, voxels=None, noisy_color_voxels=None, t=None,
                                ):
         """
 
@@ -441,6 +467,17 @@ class LatentVolumeNetwork(nn.Module):
         if self.sdf_gen:
             assert noisy_sdf is not None
             feat = torch.cat([feat, noisy_sdf], dim=-1)
+        
+        if self.color_gen:
+            assert noisy_color_voxels is not None
+            assert emb is not None
+            assert t is not None and bs == 1
+            noisy_color_voxels = noisy_color_voxels.view(bs, 96, 96, 96, 3).permute(0, 4, 1, 2, 3) # b, 3, r, r, r
+            noise_level = t / 1000
+            color_voxel_feat = self.occ_model(noisy_color_voxels, noise_level, None, emb, None, None, kernel_size=2) # b, 16, r, r, r
+            color_voxel_feat = color_voxel_feat.permute(0, 2, 3, 4, 1).reshape([-1, 16])
+            feat = torch.cat([feat, color_voxel_feat], dim=-1)
+            # feat = torch.cat([feat, noisy_color_voxels], dim=-1)
 
         # inject voxel information
         if self.voxel_cond:

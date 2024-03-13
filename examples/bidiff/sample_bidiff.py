@@ -451,6 +451,7 @@ def main(args):
                                 noise_scheduler=noise_scheduler,
                                 prompt_3d=prompts, 
                                 mesh_save_path=mesh_save_path,
+                                save_vis=False,
                                 **sample_kwargs
                                 ).images
 

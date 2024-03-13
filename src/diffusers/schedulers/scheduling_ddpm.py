@@ -154,6 +154,7 @@ class DDPMScheduler(SchedulerMixin, ConfigMixin):
         dynamic_thresholding_ratio: float = 0.995,
         clip_sample_range: float = 1.0,
         sample_max_value: float = 1.0,
+        coefficient = -12.0,
     ):
         if trained_betas is not None:
             self.betas = torch.tensor(trained_betas, dtype=torch.float32)
@@ -173,7 +174,6 @@ class DDPMScheduler(SchedulerMixin, ConfigMixin):
             self.betas = torch.sigmoid(betas) * (beta_end - beta_start) + beta_start
         elif beta_schedule == "exp":
             # NOTE(lihe): implement shap-e schedule
-            coefficient = -12.0
             self.betas = betas_for_alpha_bar_shap_e(num_train_timesteps, lambda t: math.exp(t * coefficient))
         else:
             raise NotImplementedError(f"{beta_schedule} does is not implemented for {self.__class__}")

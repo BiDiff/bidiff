@@ -225,6 +225,7 @@ class BidiffModel(ModelMixin, ConfigMixin):
         occ_diff=False,
         input_res=64,
         render_res=512,
+        color_gen=False,
     ):
         super().__init__()
 
@@ -577,6 +578,7 @@ class BidiffModel(ModelMixin, ConfigMixin):
                                                 use_featurenet_view_embed=use_featurenet_view_embed,
                                                 input_res=input_res,
                                                 render_res=render_res,
+                                                color_gen=color_gen,
                                             )
         else:
             raise NotImplementedError
@@ -617,6 +619,7 @@ class BidiffModel(ModelMixin, ConfigMixin):
         self.sdf_gen = sdf_gen
         self.input_res = input_res
         self.render_res = render_res
+        self.color_gen = color_gen
 
 
     @classmethod
@@ -713,6 +716,7 @@ class BidiffModel(ModelMixin, ConfigMixin):
             occ_diff=model_cfg.get('occ_diff', False),
             input_res=model_cfg.get('input_res', 64),
             render_res=model_cfg.get('render_res', 512),
+            color_gen=model_cfg.get('color_gen', False),
         )
 
         # For not config parameters
@@ -894,11 +898,13 @@ class BidiffModel(ModelMixin, ConfigMixin):
         dpm_solver_scheduler=None,
         neus_noisy_latents=None,
         noisy_sdf=None,
+        noisy_color_voxels=None,
         mesh_save_path=None,
         cond_decouple=False,
         background_rgb=-1,
         noisy_latents_hr=None,
         pred_clean_sdf=None,
+        save_vis=True,
     ) -> Union[ControlNetOutput, Tuple]:
         # check channel order
         # channel_order = self.config.controlnet_conditioning_channel_order
@@ -929,15 +935,17 @@ class BidiffModel(ModelMixin, ConfigMixin):
         if not self.training:
             sample_rays['latents_3d'] = noisy_latents_3d # BUG!!!! uncond + cond
         
-        controlnet_cond, loss_trans, losses, pred_x0, noisy_latents_3d_from_converter, noisy_latents_3d_prev, pred_clean_sdf = self.denoiser3d(feats=noisy_latents_hr, t=timestep, query_ids=None, 
+        controlnet_cond, loss_trans, losses, pred_x0, noisy_latents_3d_from_converter, noisy_latents_3d_prev, pred_clean_sdf, pred_color_voxels = self.denoiser3d(feats=noisy_latents_hr, t=timestep, query_ids=None, 
                                                                     sample_rays=sample_rays, unet=unet,
                                                                     encoder_hidden_states=encoder_hidden_states_input,
                                                                     model_3d=self.model_3d, dpm_solver_scheduler=dpm_solver_scheduler,
                                                                     noisy_sdf=noisy_sdf, mesh_save_path=mesh_save_path,
                                                                     background_rgb=background_rgb, new_batch=new_batch, feats_64=noisy_latents_64,
-                                                                    pred_clean_sdf=pred_clean_sdf)
+                                                                    pred_clean_sdf=pred_clean_sdf,
+                                                                    noisy_color_voxels=noisy_color_voxels)
         b, nv, *sp = controlnet_cond.shape
         cond_res = sp[-1]
+        controlnet_cond_save = controlnet_cond if self.training else controlnet_cond.clone()
         
         if self.skip_denoise and not self.training:
             neus_pred_x0 = controlnet_cond.clone().view(b*nv, *sp) # (b, v, 3+1, res, res)
@@ -1229,7 +1237,8 @@ class BidiffModel(ModelMixin, ConfigMixin):
         
         return EasyDict(
             model_pred=model_pred, loss_trans=loss_trans, losses=losses, noisy_latents_3d_prev=noisy_latents_3d_prev, neus_pred_x0=neus_pred_x0,
-            pred_clean_sdf=pred_clean_sdf
+            pred_clean_sdf=pred_clean_sdf,
+            pred_color_voxels=pred_color_voxels,
         )
         # return BidiffOutput(
         #     model_pred=model_pred, loss_trans=loss_trans, losses=losses, noisy_latents_3d_prev=noisy_latents_3d_prev, neus_pred_x0=neus_pred_x0,
